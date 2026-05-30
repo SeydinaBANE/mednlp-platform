@@ -10,6 +10,12 @@ resolution-markers = [
     "python_full_version <= '3.11' and sys_platform == 'win32'",
 ]
 
+[manifest]
+constraints = [
+    { name = "jaraco-context", specifier = ">=6.1.0" },
+    { name = "wheel", specifier = ">=0.46.2" },
+]
+
 [[package]]
 name = "accelerate"
 version = "1.13.0"

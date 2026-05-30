@@ -107,6 +107,14 @@ ignore = ["ANN101", "ANN102", "S101"]
 # Alembic auto-generated migrations may have long lines
 "alembic/**" = ["E501"]
 
+[tool.uv]
+constraint-dependencies = [
+  # CVE-2026-24049 — privilege escalation in wheel <0.46.2
+  "wheel>=0.46.2",
+  # CVE-2026-23949 — path traversal in jaraco.context <6.1.0
+  "jaraco.context>=6.1.0",
+]
+
 [tool.mypy]
 strict = true
 python_version = "3.11"
