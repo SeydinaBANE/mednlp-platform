@@ -1,4 +1,4 @@
-"""MLflow model promotion gate — evaluate Staging model and promote to Production."""
+"""MLflow model promotion gate — evaluate challenger model and promote to champion."""
 
 from typing import Any
 
@@ -20,26 +20,40 @@ def _get_mlflow_client() -> Any:
 
 
 def _load_staging_model(model_name: str) -> Any:
-    """Load the latest Staging version of a registered model."""
-    client = _get_mlflow_client()
-    versions = client.get_latest_versions(model_name, stages=["Staging"])
-    if not versions:
-        raise ValueError(f"No Staging version found for model {model_name!r}")
-    model_uri = f"models:/{model_name}/Staging"
+    """Load the model aliased as 'challenger' (MLflow 3.x staging alias)."""
     import mlflow
+    import mlflow.exceptions
 
-    return mlflow.pyfunc.load_model(model_uri)
-
-
-def _transition(model_name: str, version: str, stage: str) -> None:
     client = _get_mlflow_client()
-    client.transition_model_version_stage(
-        name=model_name,
-        version=version,
-        stage=stage,
-        archive_existing_versions=True,
-    )
-    logger.info("model_stage_transition", model=model_name, version=version, stage=stage)
+    for alias in ("challenger", "staging"):
+        try:
+            client.get_model_version_by_alias(model_name, alias)
+            return mlflow.pyfunc.load_model(f"models:/{model_name}@{alias}")
+        except mlflow.exceptions.MlflowException:
+            continue
+
+    raise ValueError(f"No staging alias ('challenger' or 'staging') found for model {model_name!r}")
+
+
+def _get_challenger_version(client: Any, model_name: str) -> str:
+    """Return the version number of the current challenger (staging) model."""
+    import mlflow.exceptions
+
+    for alias in ("challenger", "staging"):
+        try:
+            mv = client.get_model_version_by_alias(model_name, alias)
+            return str(mv.version)
+        except mlflow.exceptions.MlflowException:
+            continue
+
+    raise ValueError(f"No staging alias found for model {model_name!r}")
+
+
+def _promote(model_name: str, version: str) -> None:
+    """Set the 'champion' alias on the given version (MLflow 3.x production promotion)."""
+    client = _get_mlflow_client()
+    client.set_registered_model_alias(name=model_name, alias="champion", version=version)
+    logger.info("model_promoted_to_champion", model=model_name, version=version)
 
 
 def promote_icd10(
@@ -49,15 +63,12 @@ def promote_icd10(
     threshold: float = _DEFAULT_ICD10_THRESHOLD,
     label_names: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Evaluate Staging ICD-10 model and promote to Production if macro-F1 ≥ threshold.
+    """Evaluate challenger ICD-10 model and promote to champion if macro-F1 ≥ threshold.
 
     Raises ModelPromotionBlockedError if the model does not pass the quality gate.
     """
     client = _get_mlflow_client()
-    versions = client.get_latest_versions(model_name, stages=["Staging"])
-    if not versions:
-        raise ValueError(f"No Staging model found for {model_name!r}")
-    version = versions[0].version
+    version = _get_challenger_version(client, model_name)
 
     metrics = evaluate_icd10(y_true, y_pred_prob, label_names=label_names)
     f1 = metrics["f1_macro"]
@@ -72,7 +83,7 @@ def promote_icd10(
             threshold=threshold,
         )
 
-    _transition(model_name, version, "Production")
+    _promote(model_name, version)
     logger.info("model_promoted", model=model_name, version=version, f1_macro=f1)
     return {"model_name": model_name, "version": version, "f1_macro": f1, "promoted": True}
 
@@ -84,15 +95,12 @@ def promote_triage(
     threshold: float = _DEFAULT_TRIAGE_THRESHOLD,
     class_names: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Evaluate Staging triage model and promote to Production if weighted-F1 ≥ threshold.
+    """Evaluate challenger triage model and promote to champion if weighted-F1 ≥ threshold.
 
     Raises ModelPromotionBlockedError if the model does not pass the quality gate.
     """
     client = _get_mlflow_client()
-    versions = client.get_latest_versions(model_name, stages=["Staging"])
-    if not versions:
-        raise ValueError(f"No Staging model found for {model_name!r}")
-    version = versions[0].version
+    version = _get_challenger_version(client, model_name)
 
     metrics = evaluate_triage(y_true, y_pred, class_names=class_names)
     f1 = metrics["f1_weighted"]
@@ -107,6 +115,6 @@ def promote_triage(
             threshold=threshold,
         )
 
-    _transition(model_name, version, "Production")
+    _promote(model_name, version)
     logger.info("model_promoted", model=model_name, version=version, f1_weighted=f1)
     return {"model_name": model_name, "version": version, "f1_weighted": f1, "promoted": True}

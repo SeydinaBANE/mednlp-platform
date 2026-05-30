@@ -36,23 +36,28 @@ def _get_mlflow_client() -> "mlflow.tracking.MlflowClient":
 
 
 def get_production_model(model_name: str) -> ModelInfo:
-    """Return metadata for the latest Production version of a registered model."""
+    """Return metadata for the model aliased as 'champion' (MLflow 3.x production alias).
+
+    Falls back to 'production' alias for backward compatibility.
+    """
     client = _get_mlflow_client()
-    import mlflow
+    import mlflow.exceptions
 
-    versions: list[mlflow.entities.model_registry.ModelVersion] = client.get_latest_versions(
-        model_name, stages=["Production"]
-    )
-    if not versions:
-        raise ValueError(f"No Production version found for model {model_name!r}")
+    for alias in ("champion", "production"):
+        try:
+            mv = client.get_model_version_by_alias(model_name, alias)
+            return ModelInfo(
+                name=mv.name,
+                version=mv.version,
+                stage=alias,
+                run_id=mv.run_id,
+                artifact_uri=mv.source,
+            )
+        except mlflow.exceptions.MlflowException:
+            continue
 
-    mv = versions[0]
-    return ModelInfo(
-        name=mv.name,
-        version=mv.version,
-        stage=mv.current_stage,
-        run_id=mv.run_id,
-        artifact_uri=mv.source,
+    raise ValueError(
+        f"No production alias ('champion' or 'production') found for model {model_name!r}"
     )
 
 
@@ -61,11 +66,11 @@ def get_model_by_version(model_name: str, version: str) -> ModelInfo:
     client = _get_mlflow_client()
     import mlflow
 
-    mv: mlflow.entities.model_registry.ModelVersion = client.get_model_version(model_name, version)
+    mv: mlflow.entities.model_registry.ModelVersion = client.get_model_version(model_name, version)  # type: ignore[attr-defined]
     return ModelInfo(
         name=mv.name,
         version=mv.version,
-        stage=mv.current_stage,
+        stage=", ".join(mv.aliases) if mv.aliases else "",
         run_id=mv.run_id,
         artifact_uri=mv.source,
     )
@@ -76,7 +81,7 @@ def list_registered_models() -> list[str]:
     client = _get_mlflow_client()
     import mlflow
 
-    models: list[mlflow.entities.model_registry.RegisteredModel] = list(
+    models: list[mlflow.entities.model_registry.RegisteredModel] = list(  # type: ignore[attr-defined]
         client.search_registered_models()
     )
     return [m.name for m in models]
