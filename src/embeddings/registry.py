@@ -32,7 +32,7 @@ def _get_mlflow_client() -> "mlflow.tracking.MlflowClient":
         settings = get_settings()
         mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
         _client = mlflow.tracking.MlflowClient()
-    return _client
+    return _client  # type: ignore[no-any-return]
 
 
 def get_production_model(model_name: str) -> ModelInfo:

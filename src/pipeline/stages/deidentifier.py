@@ -41,7 +41,7 @@ def _get_anonymizer() -> Any:
     from presidio_anonymizer import AnonymizerEngine
 
     logger.info("loading_presidio_anonymizer")
-    return AnonymizerEngine()
+    return AnonymizerEngine()  # type: ignore[no-untyped-call]
 
 
 @task(name="deidentifier", retries=1, retry_delay_seconds=5)

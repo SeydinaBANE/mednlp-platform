@@ -64,7 +64,7 @@ def train_icd10(
 
     logger.info("icd10_training_started", base_model=base_model_name, num_labels=num_labels)
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    tokenizer = AutoTokenizer.from_pretrained(base_model_name)  # type: ignore[no-untyped-call]
     base_model = AutoModelForSequenceClassification.from_pretrained(
         base_model_name,
         num_labels=num_labels,

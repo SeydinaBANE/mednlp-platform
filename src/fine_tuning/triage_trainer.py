@@ -67,7 +67,7 @@ def train_triage(
 
     logger.info("triage_training_started", base_model=base_model_name)
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    tokenizer = AutoTokenizer.from_pretrained(base_model_name)  # type: ignore[no-untyped-call]
     base_model = AutoModelForSequenceClassification.from_pretrained(
         base_model_name, num_labels=_NUM_CLASSES
     )
@@ -77,7 +77,7 @@ def train_triage(
     class_weights_tensor = torch.tensor(cfg.class_weights, dtype=torch.float)
 
     class _WeightedTrainer(Trainer):
-        def compute_loss(
+        def compute_loss(  # type: ignore[override]
             self, model: Any, inputs: dict[str, Any], return_outputs: bool = False, **kwargs: Any
         ) -> Any:
             labels = inputs.pop("labels")

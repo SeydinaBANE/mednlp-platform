@@ -44,7 +44,7 @@ def _load_model_and_tokenizer(mlflow_uri: str, model_name: str) -> tuple[Any, An
 
     logger.info("loading_lora_mistral", model_name=model_name, path=local_path)
 
-    bnb_config = BitsAndBytesConfig(
+    bnb_config = BitsAndBytesConfig(  # type: ignore[no-untyped-call]
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16,
@@ -57,7 +57,7 @@ def _load_model_and_tokenizer(mlflow_uri: str, model_name: str) -> tuple[Any, An
         trust_remote_code=False,
     )
     model = PeftModel.from_pretrained(base_model, local_path)
-    tokenizer = AutoTokenizer.from_pretrained(local_path)
+    tokenizer = AutoTokenizer.from_pretrained(local_path)  # type: ignore[no-untyped-call]
     tokenizer.pad_token = tokenizer.eos_token
 
     logger.info("lora_mistral_loaded")

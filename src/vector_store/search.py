@@ -41,7 +41,7 @@ async def search_similar(
     query_filter = _build_filter(patient_id=patient_id, note_type=note_type)
 
     try:
-        results = await client.search(
+        results = await client.search(  # type: ignore[attr-defined]
             collection_name=collection,
             query_vector=query_vector,
             limit=top_k,

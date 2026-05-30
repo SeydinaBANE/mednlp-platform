@@ -104,7 +104,7 @@ jobs:
         run: uv sync --all-extras --frozen
 
       - name: Run integration tests
-        run: uv run pytest tests/integration/ -v --timeout=120
+        run: uv run pytest tests/integration/ -v --timeout=120 --no-cov
 
   security:
     name: Security Scan

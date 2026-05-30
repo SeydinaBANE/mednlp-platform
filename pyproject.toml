@@ -119,6 +119,21 @@ disallow_subclassing_any = false
 # Streamlit portal pages use dynamic typing (st.cache_data decorators, runtime imports)
 exclude = ["src/portal/"]
 
+[[tool.mypy.overrides]]
+# These modules call into libraries whose stubs vary across Python/OS versions
+# (qdrant-client, mlflow, bitsandbytes, presidio-anonymizer, transformers).
+# type: ignore comments are needed in CI (Python 3.12, older stubs) but flagged
+# as unused locally (newer stubs). Disable warn_unused_ignores per-module.
+module = [
+    "src.vector_store.search",
+    "src.embeddings.registry",
+    "src.embeddings.lora_mistral_embedder",
+    "src.pipeline.stages.deidentifier",
+    "src.fine_tuning.icd10_trainer",
+    "src.fine_tuning.triage_trainer",
+]
+warn_unused_ignores = false
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
