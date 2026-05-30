@@ -1,0 +1,15 @@
+{
+  "resourceType": "DocumentReference",
+  "id": "note-or-004",
+  "status": "current",
+  "subject": {"reference": "Patient/synth-patient-004"},
+  "date": "2024-01-10T13:45:00Z",
+  "context": {"encounter": [{"reference": "Encounter/synth-enc-004"}]},
+  "type": {
+    "coding": [{"system": "http://loinc.org", "code": "11504-8", "display": "Operative report"}]
+  },
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns='http://www.w3.org/1999/xhtml'>PROCEDURE: Laparoscopic cholecystectomy. SURGEON: Attending surgeon. ANESTHESIA: General endotracheal. INDICATION: Symptomatic cholelithiasis with recurrent biliary colic. PROCEDURE: Standard 4-port technique. Gallbladder moderately inflamed, no perforation. Critical view of safety established. Cystic duct and artery identified, clipped x2, divided. Gallbladder dissected from liver bed. Specimen extracted via umbilical port in retrieval bag. Hemostasis confirmed. FINDINGS: Multiple gallstones, largest 1.2cm. COMPLICATIONS: None. EBL: Minimal. DISPOSITION: PACU stable.</div>"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "resourceType": "DocumentReference",
+  "id": "note-pn-001",
+  "status": "current",
+  "subject": {"reference": "Patient/synth-patient-001"},
+  "date": "2024-03-15T10:30:00Z",
+  "context": {"encounter": [{"reference": "Encounter/synth-enc-001"}]},
+  "type": {
+    "coding": [{"system": "http://loinc.org", "code": "11506-3", "display": "Progress note"}]
+  },
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns='http://www.w3.org/1999/xhtml'>CC: 65yo M with HTN, DM2 presenting for routine follow-up. BP 138/84, HR 72, RR 16, SpO2 98% RA. Weight 89kg. A1c 7.2% (improved). LDL 98. Medications: metformin 1000mg BID, lisinopril 10mg QD, atorvastatin 40mg QD. No chest pain, dyspnea, or edema. Exam unremarkable. A/P: DM2 controlled, HTN at goal. Continue current regimen. Repeat labs in 3 months. Influenza vaccine administered.</div>"
+  }
+}

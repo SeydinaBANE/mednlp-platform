@@ -1,0 +1,15 @@
+{
+  "resourceType": "DocumentReference",
+  "id": "note-cons-005",
+  "status": "current",
+  "subject": {"reference": "Patient/synth-patient-005"},
+  "date": "2024-05-08T11:00:00Z",
+  "context": {"encounter": [{"reference": "Encounter/synth-enc-005"}]},
+  "type": {
+    "coding": [{"system": "http://loinc.org", "code": "11488-4", "display": "Consultation note"}]
+  },
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns='http://www.w3.org/1999/xhtml'>CARDIOLOGY CONSULTATION. REASON: New-onset atrial fibrillation with rapid ventricular response. HPI: 71yo M with HTN and OSA presenting with palpitations x12h. HR 128 irregular. EKG: AF with RVR, no ischemic changes. Echo: EF 55%, mild LA enlargement, no thrombus. MANAGEMENT: Rate control — metoprolol 25mg TID. Anticoagulation — apixaban 5mg BID (CHA2DS2-VASc = 3). CHADS-VASc: HTN(1), age(1), male(0) — score 2, anticoagulation indicated. PLAN: Repeat TTE in 4 weeks, consider cardioversion if sinus rhythm not restored.</div>"
+  }
+}

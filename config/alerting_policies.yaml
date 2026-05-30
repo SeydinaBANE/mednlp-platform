@@ -1,0 +1,86 @@
+# Cloud Monitoring Alerting Policies — MedNLP Platform
+# Apply with: gcloud alpha monitoring policies import config/alerting_policies.yaml
+
+policies:
+  - display_name: "RAG p99 Latency > 30s"
+    conditions:
+      - display_name: "rag_query_latency_p99 threshold"
+        condition_threshold:
+          filter: |
+            metric.type="prometheus.googleapis.com/rag_query_latency_seconds/histogram"
+            resource.type="prometheus_target"
+          aggregations:
+            - alignment_period: "60s"
+              per_series_aligner: ALIGN_DELTA
+              cross_series_reducer: REDUCE_PERCENTILE_99
+          comparison: COMPARISON_GT
+          threshold_value: 30.0
+          duration: "120s"
+    notification_channels: ["${PAGERDUTY_CHANNEL}"]
+    severity: ERROR
+    documentation:
+      content: |
+        RAG query p99 latency exceeds 30 seconds. Check:
+        - Qdrant search latency (ef parameter)
+        - OpenRouter API latency / rate limits
+        - Redis reranker cache hit rate
+
+  - display_name: "DLQ Rate > 5%"
+    conditions:
+      - display_name: "dlq_rate threshold"
+        condition_threshold:
+          filter: |
+            metric.type="prometheus.googleapis.com/dlq_messages_total/counter"
+            resource.type="prometheus_target"
+          aggregations:
+            - alignment_period: "300s"
+              per_series_aligner: ALIGN_RATE
+          comparison: COMPARISON_GT
+          threshold_value: 0.05
+          duration: "300s"
+    notification_channels: ["${SLACK_CHANNEL}", "${PAGERDUTY_CHANNEL}"]
+    severity: ERROR
+    documentation:
+      content: |
+        Dead-letter queue rate exceeds 5%. Check:
+        - FHIR resource validity in incoming messages
+        - Pub/Sub emulator health
+        - Parser exception logs
+
+  - display_name: "Pipeline Error Rate > 1%"
+    conditions:
+      - display_name: "error_rate threshold"
+        condition_threshold:
+          filter: |
+            metric.type="prometheus.googleapis.com/pipeline_note_processing_total/counter"
+            resource.labels.status="failure"
+          aggregations:
+            - alignment_period: "60s"
+              per_series_aligner: ALIGN_RATE
+          comparison: COMPARISON_GT
+          threshold_value: 0.01
+          duration: "180s"
+    notification_channels: ["${SLACK_CHANNEL}"]
+    severity: WARNING
+
+  - display_name: "Embedding Drift Score > 0.1"
+    conditions:
+      - display_name: "embedding_drift_score threshold"
+        condition_threshold:
+          filter: |
+            metric.type="prometheus.googleapis.com/embedding_drift_score/gauge"
+            resource.type="prometheus_target"
+          aggregations:
+            - alignment_period: "3600s"
+              per_series_aligner: ALIGN_MEAN
+          comparison: COMPARISON_GT
+          threshold_value: 0.1
+          duration: "3600s"
+    notification_channels: ["${PAGERDUTY_CHANNEL}"]
+    severity: WARNING
+    documentation:
+      content: |
+        Embedding drift JS divergence > 0.1. Consider:
+        - Retraining BiomedBERT embedder
+        - Reviewing recent note ingestion patterns
+        - Triggering backfill: make backfill MODEL=v2

@@ -1,0 +1,106 @@
+name: CD — Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-staging
+  cancel-in-progress: true
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  deploy-staging:
+    name: Build & Deploy to Staging
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker gcr.io --quiet
+
+      - name: Build & push API image
+        run: |
+          docker build -f docker/api.Dockerfile \
+            -t gcr.io/$GCP_PROJECT_ID/mednlp-api:$IMAGE_TAG \
+            -t gcr.io/$GCP_PROJECT_ID/mednlp-api:staging \
+            .
+          docker push gcr.io/$GCP_PROJECT_ID/mednlp-api:$IMAGE_TAG
+          docker push gcr.io/$GCP_PROJECT_ID/mednlp-api:staging
+
+      - name: Build & push worker image
+        run: |
+          docker build -f docker/worker.Dockerfile \
+            -t gcr.io/$GCP_PROJECT_ID/mednlp-worker:$IMAGE_TAG \
+            -t gcr.io/$GCP_PROJECT_ID/mednlp-worker:staging \
+            .
+          docker push gcr.io/$GCP_PROJECT_ID/mednlp-worker:$IMAGE_TAG
+          docker push gcr.io/$GCP_PROJECT_ID/mednlp-worker:staging
+
+      - name: Deploy API to Cloud Run (staging)
+        run: |
+          gcloud run deploy mednlp-api-staging \
+            --image gcr.io/$GCP_PROJECT_ID/mednlp-api:$IMAGE_TAG \
+            --region $GCP_REGION \
+            --platform managed \
+            --set-env-vars ENV=staging \
+            --set-secrets "OPENROUTER_API_KEY=openrouter-api-key:latest,SECRET_KEY=app-secret-key:latest" \
+            --min-instances 1 \
+            --max-instances 10 \
+            --cpu 2 \
+            --memory 2Gi \
+            --no-traffic \
+            --quiet
+
+      - name: Run migration
+        run: |
+          gcloud run jobs execute mednlp-migrate-staging \
+            --region $GCP_REGION \
+            --wait \
+            --quiet || echo "Migration job not configured, skipping"
+
+      - name: Shift traffic to new revision
+        run: |
+          gcloud run services update-traffic mednlp-api-staging \
+            --region $GCP_REGION \
+            --to-latest
+
+      - name: Verify deployment
+        run: |
+          URL=$(gcloud run services describe mednlp-api-staging \
+            --region $GCP_REGION \
+            --format 'value(status.url)')
+          echo "Staging URL: $URL"
+          curl -sf "$URL/health" || (echo "Health check failed" && exit 1)
+
+      - name: Notify Slack on success
+        if: success()
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"✅ Staging deploy succeeded: \`$GITHUB_SHA\`\"}"
+
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"❌ Staging deploy failed: \`$GITHUB_SHA\` — <$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|View run>\"}"
