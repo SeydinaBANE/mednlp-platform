@@ -1,0 +1,113 @@
+name: Fine-Tune Trigger
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Training task"
+        required: true
+        type: choice
+        options:
+          - icd10
+          - triage
+      promote_on_success:
+        description: "Promote to Production if evaluation passes"
+        required: false
+        type: boolean
+        default: false
+      f1_threshold:
+        description: "Minimum F1 score for promotion (0.0-1.0)"
+        required: false
+        default: "0.80"
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+
+jobs:
+  submit-vertex-job:
+    name: Submit Vertex AI Fine-Tune Job
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # OIDC for Workload Identity Federation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.30"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen --no-dev
+
+      - name: Build and push training container
+        run: |
+          docker build -f docker/fine_tune.Dockerfile \
+            -t gcr.io/$GCP_PROJECT_ID/mednlp-fine-tune:${{ github.sha }} \
+            -t gcr.io/$GCP_PROJECT_ID/mednlp-fine-tune:latest \
+            .
+          gcloud auth configure-docker gcr.io --quiet
+          docker push gcr.io/$GCP_PROJECT_ID/mednlp-fine-tune:${{ github.sha }}
+          docker push gcr.io/$GCP_PROJECT_ID/mednlp-fine-tune:latest
+
+      - name: Submit Vertex AI job
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+          TASK: ${{ inputs.task }}
+        run: |
+          uv run python - <<'EOF'
+          from src.fine_tuning.vertex_job import VertexJobConfig, submit_fine_tune_job
+          import os
+
+          config = VertexJobConfig(
+              task=os.environ["TASK"],
+              sync=True,
+          )
+          job_name = submit_fine_tune_job(config)
+          print(f"Job submitted: {job_name}")
+          EOF
+
+      - name: Promote model (if requested)
+        if: ${{ inputs.promote_on_success }}
+        env:
+          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+          TASK: ${{ inputs.task }}
+          F1_THRESHOLD: ${{ inputs.f1_threshold }}
+        run: |
+          uv run python - <<'EOF'
+          import os
+          import numpy as np
+          from src.fine_tuning.promote_model import promote_icd10, promote_triage
+
+          task = os.environ["TASK"]
+          threshold = float(os.environ.get("F1_THRESHOLD", "0.80"))
+          model_name = f"mednlp-{task}"
+
+          # Placeholder — in production, load real holdout data from GCS
+          dummy_y_true = np.zeros((10, 50)) if task == "icd10" else np.zeros(10, dtype=int)
+          dummy_y_pred = np.zeros((10, 50)) if task == "icd10" else np.zeros(10, dtype=int)
+
+          try:
+              if task == "icd10":
+                  result = promote_icd10(model_name, dummy_y_true, dummy_y_pred, threshold=threshold)
+              else:
+                  result = promote_triage(model_name, dummy_y_true, dummy_y_pred, threshold=threshold)
+              print(f"Model promoted: {result}")
+          except Exception as e:
+              print(f"Promotion blocked: {e}")
+              exit(1)
+          EOF

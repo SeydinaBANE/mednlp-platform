@@ -1,0 +1,33 @@
+pipeline:
+  stages:
+    segmenter:
+      enabled: true
+    deidentifier:
+      enabled: true
+      depth: standard  # standard | deep (adds differential privacy)
+    ner:
+      enabled: true
+      model: en_core_sci_md
+      link_umls: true
+    quality_gate:
+      enabled: true
+      suite: mednlp_suite
+      fail_on_error: true
+    vectorizer:
+      enabled: true
+
+embeddings:
+  ab_test:
+    dual_write: true  # Write to both collections during warm-up period
+    split_pct: 50     # % of notes routed to model B
+    warm_up_hours: 72
+  models:
+    model_a:
+      name: biomedbert_v1
+      collection: notes_biomedbert_v1
+      dimensions: 768
+    model_b:
+      name: lora_mistral_v1
+      collection: notes_lora_mistral_v1
+      dimensions: 4096
+  production_model: model_a

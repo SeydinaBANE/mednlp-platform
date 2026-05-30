@@ -1,0 +1,139 @@
+{
+  "title": "MedNLP Platform",
+  "uid": "mednlp-platform",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Notes Processed (last 1h)",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "expr": "increase(pipeline_note_processing_total{status='success'}[1h])",
+        "legendFormat": "Success"
+      }]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "DLQ Rate",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "expr": "rate(dlq_messages_total[5m]) / rate(pipeline_note_processing_total[5m])",
+        "legendFormat": "DLQ %"
+      }],
+      "thresholds": {
+        "steps": [
+          { "color": "green", "value": 0 },
+          { "color": "yellow", "value": 0.02 },
+          { "color": "red", "value": 0.05 }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Embedding Drift Score",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "expr": "embedding_drift_score",
+        "legendFormat": "JS Divergence"
+      }],
+      "thresholds": {
+        "steps": [
+          { "color": "green", "value": 0 },
+          { "color": "yellow", "value": 0.07 },
+          { "color": "red", "value": 0.1 }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Pipeline Stage Latency (p50/p95/p99)",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(pipeline_stage_latency_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(pipeline_stage_latency_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(pipeline_stage_latency_seconds_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "RAG Query Latency (p50/p95/p99)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(rag_query_latency_seconds_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(rag_query_latency_seconds_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Embedding Model Throughput",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "rate(pipeline_note_processing_total[5m])",
+        "legendFormat": "{{ status }}"
+      }]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "LLM Token Consumption",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "rate(llm_tokens_total[5m])",
+        "legendFormat": "{{ model }} / {{ direction }}"
+      }]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Drift Scores Over Time",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "embedding_drift_score",
+          "legendFormat": "Embedding (JS)"
+        },
+        {
+          "expr": "data_drift_pvalue",
+          "legendFormat": "Data (χ² p-value)"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "A/B Model Routing",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "rate(embedding_model_inference_seconds_count[5m])",
+        "legendFormat": "{{ model }}"
+      }]
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+# Secrets — jamais committer
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+service_account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# uv / venv
+.venv/
+venv/
+.uv/
+
+# Tests & couverture
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+
+# Linting
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb_tmp
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Rapports (générés, pas à versionner)
+reports/*.json
+reports/*.html
+
+# Terraform state (géré remotement)
+infra/**/.terraform/
+infra/**/terraform.tfstate
+infra/**/terraform.tfstate.backup
+infra/**/.terraform.lock.hcl
+
+# Modèles ML locaux (trop lourds)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+models/
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/

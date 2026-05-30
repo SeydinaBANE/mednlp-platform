@@ -1,0 +1,15 @@
+{
+  "resourceType": "DocumentReference",
+  "id": "note-ds-002",
+  "status": "current",
+  "subject": {"reference": "Patient/synth-patient-002"},
+  "date": "2024-04-02T16:00:00Z",
+  "context": {"encounter": [{"reference": "Encounter/synth-enc-002"}]},
+  "type": {
+    "coding": [{"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"}]
+  },
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns='http://www.w3.org/1999/xhtml'>ADMISSION: 78yo F admitted 2024-03-29 for community-acquired pneumonia (CAP). HOSPITAL COURSE: Started on ceftriaxone 1g IV QD + azithromycin 500mg IV QD. Transitioned to oral amoxicillin-clavulanate on day 3. Oxygen requirements resolved by day 4. DISCHARGE: Clinically improved. SpO2 97% RA. CXR: improving infiltrates. DISCHARGE Rx: amoxicillin-clavulanate 875/125mg PO BID x5d. FOLLOW-UP: PCP in 1 week, repeat CXR in 6 weeks.</div>"
+  }
+}

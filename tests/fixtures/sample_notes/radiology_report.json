@@ -1,0 +1,12 @@
+{
+  "resourceType": "DiagnosticReport",
+  "id": "report-rad-003",
+  "status": "final",
+  "subject": {"reference": "Patient/synth-patient-003"},
+  "effectiveDateTime": "2024-02-20T09:15:00Z",
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns='http://www.w3.org/1999/xhtml'>CT CHEST WITHOUT CONTRAST. INDICATION: Cough x3 weeks, rule out mass. TECHNIQUE: 1.25mm axial slices. FINDINGS: No pulmonary nodules or masses. No pleural effusion. Mild bibasilar atelectasis. Heart size normal. No mediastinal lymphadenopathy. Incidental 3mm hepatic hypodensity — too small to characterize, likely cyst.</div>"
+  },
+  "conclusion": "No acute cardiopulmonary process. Mild bibasilar atelectasis. Incidental hepatic hypodensity, likely benign."
+}
