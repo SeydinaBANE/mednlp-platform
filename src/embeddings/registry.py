@@ -50,8 +50,8 @@ def get_production_model(model_name: str) -> ModelInfo:
                 name=mv.name,
                 version=mv.version,
                 stage=alias,
-                run_id=mv.run_id,
-                artifact_uri=mv.source,
+                run_id=mv.run_id or "",
+                artifact_uri=mv.source or "",
             )
         except mlflow.exceptions.MlflowException:
             continue
@@ -67,12 +67,13 @@ def get_model_by_version(model_name: str, version: str) -> ModelInfo:
     import mlflow
 
     mv: mlflow.entities.model_registry.ModelVersion = client.get_model_version(model_name, version)  # type: ignore[attr-defined]
+    aliases: list[str] = mv.aliases if mv.aliases else []
     return ModelInfo(
         name=mv.name,
         version=mv.version,
-        stage=", ".join(mv.aliases) if mv.aliases else "",
-        run_id=mv.run_id,
-        artifact_uri=mv.source,
+        stage=", ".join(aliases),
+        run_id=mv.run_id or "",
+        artifact_uri=mv.source or "",
     )
 
 

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+from mlflow.exceptions import MlflowException
 
 from src.core.exceptions import ModelPromotionBlockedError
 from src.fine_tuning.data_prep import (
@@ -221,7 +222,7 @@ class TestPromoteModel:
         mock_mv = MagicMock()
         mock_mv.version = version
         mock_client = MagicMock()
-        mock_client.get_latest_versions.return_value = [mock_mv]
+        mock_client.get_model_version_by_alias.return_value = mock_mv
         return mock_client
 
     def test_promotes_icd10_when_f1_passes(self) -> None:
@@ -233,7 +234,7 @@ class TestPromoteModel:
             result = promote_icd10("icd10-model", y_true, y_prob, threshold=0.5)
 
         assert result["promoted"] is True
-        mock_client.transition_model_version_stage.assert_called_once()
+        mock_client.set_registered_model_alias.assert_called_once()
 
     def test_blocks_icd10_when_f1_fails(self) -> None:
         y_true = np.eye(3)
@@ -256,10 +257,10 @@ class TestPromoteModel:
 
     def test_raises_when_no_staging_model(self) -> None:
         mock_client = MagicMock()
-        mock_client.get_latest_versions.return_value = []
+        mock_client.get_model_version_by_alias.side_effect = MlflowException("alias not found")
 
         with patch("src.fine_tuning.promote_model._get_mlflow_client", return_value=mock_client):
-            with pytest.raises(ValueError, match="No Staging"):
+            with pytest.raises(ValueError, match="No staging alias"):
                 promote_icd10("missing-model", np.zeros((1, 1)), np.zeros((1, 1)))
 
 

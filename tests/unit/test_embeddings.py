@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from mlflow.exceptions import MlflowException
 
 from src.core.models import ABTest
 from src.embeddings.ab_router import _bucket, dual_write, embed_and_index, route
@@ -222,26 +223,25 @@ class TestRegistry:
         mock_mv = MagicMock()
         mock_mv.name = "lora-mistral-icd10"
         mock_mv.version = "3"
-        mock_mv.current_stage = "Production"
         mock_mv.run_id = "run-abc"
         mock_mv.source = "s3://bucket/model"
 
         mock_client = MagicMock()
-        mock_client.get_latest_versions.return_value = [mock_mv]
+        mock_client.get_model_version_by_alias.return_value = mock_mv
 
         with patch("src.embeddings.registry._get_mlflow_client", return_value=mock_client):
             info = get_production_model("lora-mistral-icd10")
 
         assert info.name == "lora-mistral-icd10"
         assert info.version == "3"
-        assert info.stage == "Production"
+        assert info.stage == "champion"
 
     def test_get_production_model_raises_when_none(self) -> None:
         mock_client = MagicMock()
-        mock_client.get_latest_versions.return_value = []
+        mock_client.get_model_version_by_alias.side_effect = MlflowException("alias not found")
 
         with patch("src.embeddings.registry._get_mlflow_client", return_value=mock_client):
-            with pytest.raises(ValueError, match="No Production version"):
+            with pytest.raises(ValueError, match="No production alias"):
                 get_production_model("missing-model")
 
     def test_list_registered_models(self) -> None:
@@ -262,7 +262,7 @@ class TestRegistry:
         mock_mv = MagicMock()
         mock_mv.name = "lora-mistral-icd10"
         mock_mv.version = "2"
-        mock_mv.current_stage = "Staging"
+        mock_mv.aliases = ["challenger"]
         mock_mv.run_id = "run-xyz"
         mock_mv.source = "s3://bucket/model/v2"
 
@@ -273,4 +273,4 @@ class TestRegistry:
             info = get_model_by_version("lora-mistral-icd10", "2")
 
         assert info.version == "2"
-        assert info.stage == "Staging"
+        assert info.stage == "challenger"
